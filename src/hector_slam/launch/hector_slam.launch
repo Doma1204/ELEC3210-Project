@@ -36,4 +36,7 @@
         
         <param name="tf_map_scanmatch_transform_frame_name" value="scanmatcher_frame" />
     </node>
+
+    <node pkg="tf" type="static_transform_publisher" name="world2map_broadcaster" args="0 0 0 0 0 0 world map 100"/>
+    <node pkg="tf" type="static_transform_publisher" name="nav2base_broadcaster" args="0 0 0 0 0 0 nav base_link 100"/>
 </launch>
