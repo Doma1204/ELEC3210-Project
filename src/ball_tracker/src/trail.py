@@ -96,9 +96,9 @@ def image_callback(msg):
         cv2.drawContours(copy_img, contours, -1, (0, 0, 255), 2)
         cv2.circle(copy_img, (rX, rY), 3, (255, 0, 0), -1)
         cv2.putText(copy_img, "centroid", (rX - 25, rY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-        cv2.imshow("Image", copy_img)
+        # cv2.imshow("Image", copy_img)
         #cv2.imshow("filtered", mask)
-        cv2.waitKey(1)
+        # cv2.waitKey(1)
 
 
     except CvBridgeError, e:

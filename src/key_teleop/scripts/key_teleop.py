@@ -12,7 +12,7 @@ import math
 
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 
 class Velocity(object):
 
@@ -193,6 +193,9 @@ class SimpleKeyTeleop():
         self._auto_control = False
         self._pub_laser_switch = rospy.Publisher('vrep/laser_switch', Bool)
 
+        self._area = "A"
+        self._sub_area = rospy.Subscriber('/area', String, self._area_callback)
+
     movement_bindings = {
         curses.KEY_UP:    ( 1,  0),
         curses.KEY_DOWN:  (-1,  0),
@@ -251,9 +254,13 @@ class SimpleKeyTeleop():
             laser_switch.data = not self._auto_control
             self._pub_laser_switch.publish(laser_switch)
 
+    def _area_callback(self, msg):
+        self._area = msg.data
+
     def _publish(self):
         self._interface.clear()
         self._interface.write_line(2, 'Linear: %f, Angular: %f' % (self._linear, self._angular))
+        self._interface.write_line(3, 'Area: ' + self._area)
         self._interface.write_line(5, 'Use arrow keys to move, q to exit.')
         self._interface.write_line(7, 'Auto control: ' + str(self._auto_control))
         self._interface.refresh()

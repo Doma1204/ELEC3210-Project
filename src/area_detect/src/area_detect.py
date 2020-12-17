@@ -14,7 +14,7 @@ class AreaIdentifier:
     def __init__(self):
         self.publisher = rospy.Publisher("/area", String, queue_size=1)
         self.subscriber = rospy.Subscriber("/slam_out_pose", PoseStamped, self.callback, queue_size=1)
-        self.last_area = "A"
+        self.last_area = "Unknown"
 
     def callback(self, msg_in):
         x = msg_in.pose.position.x
@@ -25,6 +25,10 @@ class AreaIdentifier:
             if self._in_area(x, y, coor):
                 area = a
 
+        if area == self.last_area:
+            return
+
+        self.last_area = area
         self.publisher.publish(area)
 
     def _in_area(self, x, y, coor):

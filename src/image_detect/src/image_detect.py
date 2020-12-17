@@ -12,14 +12,14 @@ class ImageDetection:
     def __init__(self):
         # ROS Stuff
         self.subscriber = rospy.Subscriber("/vrep/image", Image, self.callback)
-        self.publisher = rospy.Publisher("image_marker", Marker)
+        self.publisher = rospy.Publisher("image_marker", Marker, queue_size=100)
 
         # ROS to CV imgage convert
         self.bridge = CvBridge()
 
         # Load the image
         path = "/home/joseph/Programming/ELEC3210/ELEC3210-Project/src/image_detect/picture/"
-        pictures_name = ["Obama", "Avril", "Levi", "Bloom", "Chinese"]
+        pictures_name = ["pic001", "pic002", "pic003", "pic004", "pic005"]
         self.pictures = [cv2.imread(path+name+".jpg") for name in pictures_name]
 
         # image detection init
@@ -38,9 +38,14 @@ class ImageDetection:
             self.keypoints.append((k, kf))
             self.descriptors.append((d, df))
 
+        # rospy.loginfo("init complete")
+
         # Create standard marker
-        markers = [Marker() for i in range(len(pictures_name))]
-        for marker in markers:
+        # self.markers = [Marker() for i in range(len(pictures_name))]
+        # for marker in self.markers:
+        self.markers = []
+        for i in range(len(pictures_name)):
+            marker = Marker()
             marker.id = i
             marker.header.frame_id = "/camera_link"
             marker.type = marker.TEXT_VIEW_FACING
@@ -54,11 +59,13 @@ class ImageDetection:
             marker.color.b = 0.0
             marker.pose.orientation.w = 1.0
             marker.text = pictures_name[i]
+            self.markers.append(marker)
 
     def _mark(self, id, img):
+        # rospy.loginfo("mark")
         # Find the contours of the image
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        _, img_BW = cv2.threshold(img_gray, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        _, img_BW = cv2.threshold(img_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         _, contours, _ = cv2.findContours(img_BW, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
@@ -70,20 +77,19 @@ class ImageDetection:
             self.vote_square[id] += 1
 
         if (self.vote_square[id] >= 15):
-            theta = (math.pi / 8 * h) / img.shape[1]
-            # h /= 2
-            # self.markers[id].pose.position.x = (h / math.tan(theta) * 0.5 / h)
-            self.markers[id].pose.position.x = 0.5 * math.tan(theta)
+            self.markers[id].pose.position.x = 1 / math.tan(math.pi / 8 * h / img.shape[1]) * 0.5
             self.markers[id].pose.position.y = (x + w/2) / img.shape[1]
             self.markers[id].pose.position.z = 0
 
             self.publisher.publish(self.markers[id])
             self.marked[id] = True
 
+            # rospy.loginfo('marked')
+
     def _best_fit(self, img):
         try:
-            best_id = 0
-            best = 0
+            best_id = -1
+            best = -1
             keypoint, descriptor = self.sift.detectAndCompute(img, None)
 
             for i, d in enumerate(self.descriptors):
@@ -101,23 +107,29 @@ class ImageDetection:
 
             return best_id, best
         except Exception as e:
-            return 0, 0
+            return -1, -1
 
     def callback(self, img):
-        try:
-            # convert ROS image to CV image
-            img = bridge.imgmsg_to_cv2(msg, "bgr8")
-            id, cnt = self._best_fit(img)
+        # try:
+        # rospy.loginfo("Incoming Picture")
+        # convert ROS image to CV image
+        img = self.bridge.imgmsg_to_cv2(img, "bgr8")
+        id, cnt = self._best_fit(img)
 
-            if (cnt > 120):
-                self.vote_sift[id] = 0
-            else:
-                self.vote_sift[id] += 1
+        if id == -1:
+            return
 
-            if(self.vote_sift[id] >= 10 and not self.marked[id]):
-                self._mark(id, img)
-        except Exception:
-            pass
+        if (cnt < 120):
+            self.vote_sift[id] = 0
+        else:
+            # rospy.loginfo(str(id))
+            self.vote_sift[id] += 1
+
+        if(self.vote_sift[id] >= 10 and not self.marked[id]):
+            self._mark(id, img)
+        # except Exception:
+        #     rospy.loginfo("Fail 1")
+        #     pass
 
 def main():
     rospy.init_node("image_detect")
