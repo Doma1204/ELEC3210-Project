@@ -15,6 +15,12 @@ from geometry_msgs.msg import Twist
 # Instantiate CvBridge
 bridge = CvBridge()
 
+laser_scan_on = True
+
+def auto_mode_callback(msg):
+    global laser_scan_on
+    laser_scan_on = msg.data
+    
 def image_callback(msg):
     global cv2_img
     try:
@@ -28,7 +34,7 @@ def image_callback(msg):
         mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
         #find ball contour
         (_,contours,_) = cv2.findContours(mask, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        if len(contours) < 1:
+        if len(contours) < 1 or laser_scan_on:
             return
 
         #locate centroid of ball
@@ -101,6 +107,7 @@ def image_callback(msg):
 def main():
     print("Start Ball Trackering")
     rospy.init_node('ball_track')
+    rospy.Subscriber('/vrep/laser_switch', Bool, auto_mode_callback)
     rospy.Subscriber('/vrep/image', Image, image_callback)
     rospy.spin()
 
