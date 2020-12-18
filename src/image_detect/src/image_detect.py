@@ -23,18 +23,18 @@ class ImageDetection:
         self.pictures = [cv2.imread(path+name+".jpg") for name in pictures_name]
 
         # image detection init
-        self.vote_sift = [0] * len(self.pictures)
-        self.vote_square = [0] * len(self.pictures)
+        self.surf_cnt = [0] * len(self.pictures)
+        self.square_cnt = [0] * len(self.pictures)
         self.marked = [False] * len(self.pictures)
 
         self.bf = cv2.BFMatcher()
-        self.sift = cv2.xfeatures2d.SIFT_create()
+        self.surf = cv2.xfeatures2d.SURF_create(400)
         self.keypoints, self.descriptors = [], []
         for i, picture in enumerate(self.pictures):
             picture = cv2.resize(picture, (400, 400), interpolation=cv2.INTER_AREA)
-            k, d = self.sift.detectAndCompute(picture, None)
+            k, d = self.surf.detectAndCompute(picture, None)
             picture = cv2.flip(picture, 1)
-            kf, df = self.sift.detectAndCompute(picture, None)
+            kf, df = self.surf.detectAndCompute(picture, None)
             self.keypoints.append((k, kf))
             self.descriptors.append((d, df))
 
@@ -72,11 +72,11 @@ class ImageDetection:
         ratio = float(w)/h
 
         if ratio > 1.1 and ratio < 0.5:
-            self.vote_square[id] = 0
+            self.square_cnt[id] = 0
         else:
-            self.vote_square[id] += 1
+            self.square_cnt[id] += 1
 
-        if (self.vote_square[id] >= 15):
+        if (self.square_cnt[id] >= 15):
             self.markers[id].pose.position.x = 1 / math.tan(math.pi / 8 * h / img.shape[1]) * 0.5
             self.markers[id].pose.position.y = (x + w/2) / img.shape[1]
             self.markers[id].pose.position.z = 0
@@ -90,7 +90,7 @@ class ImageDetection:
         try:
             best_id = -1
             best = -1
-            keypoint, descriptor = self.sift.detectAndCompute(img, None)
+            keypoint, descriptor = self.surf.detectAndCompute(img, None)
 
             for i, d in enumerate(self.descriptors):
                 cur_cnt = 0
@@ -120,12 +120,12 @@ class ImageDetection:
             return
 
         if (cnt < 120):
-            self.vote_sift[id] = 0
+            self.surf_cnt[id] = 0
         else:
             # rospy.loginfo(str(id))
-            self.vote_sift[id] += 1
+            self.surf_cnt[id] += 1
 
-        if(self.vote_sift[id] >= 10 and not self.marked[id]):
+        if(self.surf_cnt[id] >= 10 and not self.marked[id]):
             self._mark(id, img)
         # except Exception:
         #     rospy.loginfo("Fail 1")
