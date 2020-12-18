@@ -3,6 +3,7 @@
 # Python dependencies
 import numpy as np
 import cv2
+import math
 #from simple_pid import PID
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -45,11 +46,12 @@ def image_callback(msg):
             cY = float(M["m01"]/M["m00"])
             rX = int(M["m10"]/M["m00"])
             rY = int(M["m01"]/M["m00"])
+            radius = int(math.sqrt(cv2.contourArea(c)/math.pi))
 
 
         #find distance
         h,w = cv2_img.shape[:2]
-        (ideal_X, ideal_Y) = (w/2, 350)
+        (ideal_X, ideal_Y) = (w/2, h-(20 + radius))
         verticle_diff = cY-ideal_Y
         angle_diff = cX-ideal_X
         
